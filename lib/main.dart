@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wordgame/base.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'blank.dart' if (dart.library.io) 'android.dart' if (dart.library.html) 'web.dart';
+import 'boardgen.dart';
 
 
 const DEFAULT_BG = Colors.cyanAccent;
@@ -1118,10 +1119,23 @@ class ChatboxState extends State<Chatbox> {
 
 void boardGenerator(Clues cw, BuildContext context) async {
   var cont = true;
+  for(var i=1;i<30;++i)
       cw.sendMsg({'msgtype': 'getword'});
+  List<String> words=new List();
+  int tot=0;
   while (cont) {
       String word = await cw.wordgen.next;
-      var result = await showDialog(context: context, child: AlertDialog(
+      print(word);
+      ++tot;
+      if (!words.contains(word)) {
+        words.add(word);
+      }
+      else if (tot > 25) {
+        cw.sendMsg({'msgtype': 'getword'});
+      }
+      if (words.length == 25)
+        cont=false;
+/*      var result = await showDialog(context: context, child: AlertDialog(
         title: Text('Word Generator'),
         content: 
         actions: <Widget>[
@@ -1141,42 +1155,44 @@ void boardGenerator(Clues cw, BuildContext context) async {
         ],
       ));
       print(result);
-      cont = (result == true);
-      Navigator.push(context, MaterialPageRoute(
-                                builder: (context) =>
-                Container(
-                  child: Table(
-                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                    defaultColumnWidth: IntrinsicColumnWidth(),
-                    children: List.generate(5, (index) {
-                      List<Widget> row = [];
-                      for (var i=0; i<5; ++i) row.add(TableCell( verticalAlignment: TableCellVerticalAlignment.middle, child: Container(
-                        alignment: Alignment.centerRight,
-                        width: 70.0,
-                        height: 20.0,
-                        child: Card(child: Container(
-                          padding: EdgeInsets.all(15.0),
-                          color: Colors.amber[200],
-                          child: Text("seven", textAlign: TextAlign.center, style: Theme.of(context).textTheme.headline2)),
-                        ),
-                      )));
-                      return TableRow(
-                          children: row
-                      );
-                    }),
-                  )
-              )                                 
-
-                                    ));
+      cont = (result == true);*/
   }
+  Navigator.push(context, MaterialPageRoute(
+      builder: (context) => Board(cw: cw,words: words)/*Scaffold(body:
+        Container(
+            alignment: Alignment.center,
+            child: Table(
+              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+              defaultColumnWidth: IntrinsicColumnWidth(),
+              children: List.generate(5, (index) {
+                List<Widget> row = [];
+                for (var i=0; i<5; ++i) row.add(TableCell( verticalAlignment: TableCellVerticalAlignment.middle, child: Container(
+                  alignment: Alignment.centerRight,
+  //                        width: 70.0,
+  //                        height: 20.0,
+                  child: Card(child: Container(
+                      padding: EdgeInsets.all(15.0),
+                      color: Colors.amber[200],
+                      child: Text(words[5*index+i], textAlign: TextAlign.center, style: Theme.of(context).textTheme.headline2)),
+                  ),
+                )));
+                return TableRow(
+                    children: row
+                );
+              }),
+            )
+        )
+      ,)*/
+
+  ));
 }
 
 void wordGenerator(Clues cw, BuildContext context) async {
   var cont = true;
-      cw.sendMsg({'msgtype': 'getword'});
+  cw.sendMsg({'msgtype': 'getword'});
   while (cont) {
-      String word = await cw.wordgen.next;
-      var result = await showDialog(context: context, child: AlertDialog(
+    String word = await cw.wordgen.next;
+    var result = await showDialog(context: context, child: AlertDialog(
         title: Text('Word Generator'),
         content: 
             Card(child: Container(
