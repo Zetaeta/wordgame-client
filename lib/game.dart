@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart' ;
 import 'package:wordgame/base.dart';
 import 'package:wordgame/chat.dart';
+import 'package:wordgame/selectclue.dart';
+import 'package:wordgame/generators.dart';
 import "package:async/async.dart" show StreamQueue;
 import 'dart:async';
 import 'dart:convert';
@@ -372,6 +374,7 @@ class _GameState extends State<Game> {
 
           },
         ),
+        // TODO: Replace StreamBuilder with a listener that calls setState()
         body: StreamBuilder(
             stream:  widget.stream.map(passStream),
             key: widget.sbKey,
@@ -656,43 +659,6 @@ class _GameState extends State<Game> {
     );
   }
 
-  List<Widget> forEachClue(Map clues, List pls, Widget callback(dynamic clue, Map player)) {
-    List<Widget> cards = [];
-    for (var p in pls) {
-      if (clues.containsKey(p['id'].toString())) {
-        var clue = clues[p['id'].toString()];
-        log('adding card for clue ' + clue.toString());
-        Widget w = callback(clue, p);
-        if (w != null) {
-          cards.add(w);
-        }
-      }
-    }
-    return cards;
-  }
-  void confirmDialog(BuildContext context, String text, void callback ()) {
-    showDialog(context: context, builder: (context) {
-      return AlertDialog(
-        content: Text(text),
-        actions: <Widget>[
-          TextButton(
-            child: Text('Yes'),
-            onPressed: () {
-              Navigator.pop(context);
-              callback();
-            },
-          ),
-          TextButton(
-            child: Text('No'),
-            onPressed: () {
-              Navigator.pop(context);
-            },
-          )
-        ],
-      );
-    });
-  }
-
   Widget otherPlayers(List pls, bool readyStatus, {bool diff = true, bool guesserReady = false}) {
     bool flex = false;
     Widget content = Container(
@@ -806,157 +772,40 @@ class SourceSelector extends StatelessWidget {
   }
 }
 
-void boardGenerator(Game cw, BuildContext context) async {
-  var cont = true;
-  cw.sendMsg({'msgtype': 'getword'});
-  while (cont) {
-    //String word = await cw.wordgen.next;
-    var result = await showDialog(context: context, builder: (context)=> AlertDialog(
-      title: Text('Word Generator'),
-      //content:
+
+List<Widget> forEachClue(Map clues, List pls, Widget callback(dynamic clue, Map player)) {
+  List<Widget> cards = [];
+  for (var p in pls) {
+    if (clues.containsKey(p['id'].toString())) {
+      var clue = clues[p['id'].toString()];
+      log('adding card for clue ' + clue.toString());
+      Widget w = callback(clue, p);
+      if (w != null) {
+        cards.add(w);
+      }
+    }
+  }
+  return cards;
+}
+void confirmDialog(BuildContext context, String text, void callback ()) {
+  showDialog(context: context, builder: (context) {
+    return AlertDialog(
+      content: Text(text),
       actions: <Widget>[
         TextButton(
-          child: const Text('Done'),
+          child: Text('Yes'),
           onPressed: () {
-            Navigator.of(context).pop<bool>(false);
+            Navigator.pop(context);
+            callback();
           },
         ),
         TextButton(
-          child: const Text('New'),
+          child: Text('No'),
           onPressed: () {
-            cw.sendMsg({'msgtype': 'getword'});
-            Navigator.of(context).pop<bool>(true);
+            Navigator.pop(context);
           },
-        ),
-      ],
-    ));
-    log(result);
-    cont = (result == true);
-    Navigator.push(context, MaterialPageRoute(
-        builder: (context) =>
-            Container(
-                child: Table(
-                  defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                  defaultColumnWidth: IntrinsicColumnWidth(),
-                  children: List.generate(5, (index) {
-                    List<Widget> row = [];
-                    for (var i=0; i<5; ++i) row.add(TableCell( verticalAlignment: TableCellVerticalAlignment.middle, child: Container(
-                      alignment: Alignment.centerRight,
-                      width: 70.0,
-                      height: 20.0,
-                      child: Card(child: Container(
-                          padding: EdgeInsets.all(15.0),
-                          color: Colors.amber[200],
-                          child: Text("seven", textAlign: TextAlign.center, style: Theme.of(context).textTheme.displayMedium)),
-                      ),
-                    )));
-                    return TableRow(
-                        children: row
-                    );
-                  }),
-                )
-            )
-
-    ));
-  }
-}
-
-void wordGenerator(Game cw, BuildContext context) async {
-  var cont = true;
-  cw.sendMsg({'msgtype': 'getword'});
-  while (cont) {
-    String word = await cw.wordgen.next;
-    var result = await showDialog(context: context, builder: (context) => AlertDialog(
-      title: Text('Word Generator'),
-      content:
-      Card(child: Container(
-          padding: EdgeInsets.all(15.0),
-          color: Colors.amber[200],
-          child: Text(word, textAlign: TextAlign.center, style: Theme.of(context).textTheme.displayMedium)),
-      ),
-      actions: <Widget>[
-        TextButton(
-          child: const Text('Done'),
-          onPressed: () {
-            Navigator.of(context).pop<bool>(false);
-          },
-        ),
-        TextButton(
-          child: const Text('New'),
-          onPressed: () {
-            cw.sendMsg({'msgtype': 'getword'});
-            Navigator.of(context).pop<bool>(true);
-          },
-        ),
-      ],
-    ));
-    log(result);
-    cont = (result == true);
-  }
-}
-
-class SelectClue extends StatefulWidget {
-  final String clue;
-  final bool initialStatus;
-  final String player;
-  final int plid;
-  final Game cparent;
-  final bool active;
-  final Color background;
-
-  SelectClue({Key key, @required this.clue, @required this.player, @required this.plid, @required this.initialStatus, @required this.cparent, this.active = true, this.background = Colors.cyanAccent}) : super(key: key);
-  @override
-  _SelectClueState createState() => _SelectClueState();
-}
-
-
-class _SelectClueState extends State<SelectClue> {
-  bool show;
-  void onTap() {
-    setState(() {
-      show = !show;
-    });
-    widget.cparent.sendMsg({
-      'msgtype': 'cluevis',
-      'playerid': widget.plid,
-      'visible': show
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    show = widget.initialStatus;
-    log('initState');
-  }
-  @override
-  Widget build(BuildContext context) {
-    //var background = show ? (widget.active ? Colors.cyanAccent : Colors.cyan[200]) : Colors.grey[350];
-    var background = show ? widget.background : Colors.grey[350];
-    log(background);
-    Widget interior = Container(
-        color: background,
-        child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Text(widget.player),
-              Card(
-                  color: background,
-                  child: Container(
-                      color: Colors.white.withAlpha(70),
-                      child: Text(
-                          widget.clue,
-                          style: Theme.of(context).textTheme.headlineMedium
-                      )
-                  )
-              )
-            ]
         )
+      ],
     );
-    Widget wrappedInt = widget.active ? GestureDetector(onTap: onTap,child: interior) : interior;
-    return Container(
-        padding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
-        child: wrappedInt
-    );
-  }
+  });
 }
